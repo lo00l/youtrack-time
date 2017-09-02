@@ -1,0 +1,83 @@
+body {
+    width: 400px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.issues-list {
+    list-style-type: none;
+    padding: 10px;
+}
+
+.issue {
+    font-size: 16px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.issue.bg {
+    background-color: #BBDEFB;
+}
+
+.issue span {
+    display: inline-block;
+}
+
+.issue-name {
+    flex: 50%;
+}
+
+.issue-time {
+    flex: 30%;
+}
+
+.issue-remove {
+    flex: 20%;
+    text-align: right;
+}
+
+.issue-remove button {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: url('images/remove.png') no-repeat;
+    cursor: pointer;
+    color: ;
+}
+
+.issue-remove button:active, .issue-remove button:focus {
+    outline: none;
+}
+
+.issue-add {
+    background-color: #E1BEE7;
+    padding: 5px 10px;
+}
+
+.issue-add input {
+    font-size: 16px;
+    padding: 5px;
+    font-weight: bold;
+}
+
+.issue-add button {
+    font-size: 16px;
+    padding: 6px 14px;
+    background-color: #BBDEFB;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.issue-add button:active, .issue-add button:focus {
+    outline: none;
+}
+
+.total-time {
+    padding: 0 6px;
+    font-size: 16px;
+    margin-top: 10px;
+}
