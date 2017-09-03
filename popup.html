@@ -8,14 +8,17 @@
         <h1></h1>
         <ul class="issues-list">
         </ul>
-        <div class="issue-add">
+        <form class="issue-add">
             <div>Добавить время в задачу <span></span></div>
             <input type="text" />
-            <button>Добавить</button>
-        </div>
+            <input type="submit" id="btn-add" value="Добавить" />
+        </form>
         <div class="total-time">
             <div>Суммарное время за сегодня: <b id="total-time"></b></div>
             <div>Осталось поставить: <b id="remain-time"></b></div>
+        </div>
+        <div class="set-tracker">
+            <button>Поставить время в трекер</button>
         </div>
         <script src="youtrack.js"></script>
         <script src="script.js"></script>
