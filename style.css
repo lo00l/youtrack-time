@@ -27,6 +27,12 @@ h1 {
     background-color: #BBDEFB;
 }
 
+.issue.active {
+    outline: 1px solid black;
+    font-weight: bold;
+    background-color: #FFEE58;
+}
+
 .issue.set {
     background-color: #B39DDB;
 }
@@ -41,6 +47,13 @@ h1 {
 
 .issue-time {
     flex: 30%;
+}
+
+.issue-time input[type=text] {
+    font-size: 16px;
+    border: none;
+    width: 100px;
+    background: none;
 }
 
 .issue-remove {

@@ -1,5 +1,5 @@
 var Youtrack = function() {
-    this.hostName = "https://hungl.myjetbrains.com/youtrack";
+    this.hostName = "https://support.webcenter.pro/youtrack";
     this.formAdd = document.querySelector(".issue-add");
     this.inputAdd = document.querySelector(".issue-add input");
     this.formAdd.addEventListener("submit", this.addTime.bind(this));
@@ -91,17 +91,36 @@ Youtrack.prototype.addNoItemsNode = function() {
 
 Youtrack.prototype.addWorkItemNode = function(issueName, duration) {
     var liNode = document.createElement("li");
-    liNode.className = "issue" + (this.getWorkItemsCount() % 2 == 0 ? " bg" : "");
+    liNode.className = "issue" + (this.getWorkItemsCount() % 2 == 0 ? " bg" : "") + (this.issueName == issueName ? " active" : "");
     liNode.id = "work-item-" + issueName;
-    var nameNode = document.createElement("span");
+    var nameNode = document.createElement("div");
     nameNode.className = "issue-name";
     nameNode.innerText = issueName;
     liNode.appendChild(nameNode);
-    var timeNode = document.createElement("span");
+    var timeNode = document.createElement("div");
     timeNode.className = "issue-time";
-    timeNode.innerText = this.encodeTime(duration);
+    var input = document.createElement("input");
+    input.type = "text";
+    input.value = this.encodeTime(duration);
+    input.addEventListener("focus", function() {
+        this.select();
+    });
+    input.addEventListener("keydown", function(issueName, event) {
+        switch (event.keyCode) {
+            case 13:
+                event.target.blur();
+                break;
+            case 27:
+                event.preventDefault();
+                event.target.value = this.workItems[issueName];
+                event.target.blur();
+                break;
+        }
+    }.bind(this, issueName));
+    input.addEventListener("blur", this.setDuration.bind(this, issueName));
+    timeNode.appendChild(input);
     liNode.appendChild(timeNode);
-    var removeNode = document.createElement("span");
+    var removeNode = document.createElement("div");
     removeNode.className = "issue-remove";
     var btnRemove = document.createElement("button");
     btnRemove.dataset.workItemId = issueName;
@@ -109,6 +128,16 @@ Youtrack.prototype.addWorkItemNode = function(issueName, duration) {
     removeNode.appendChild(btnRemove);
     liNode.appendChild(removeNode);
     this.list.appendChild(liNode);
+}
+
+Youtrack.prototype.setDuration = function(issueName) {
+    console.log("setDuration", issueName);
+    var duration = this.decodeTime(document.querySelector("#work-item-" + issueName + " input[type=text]").value);
+    if (duration !== false) {
+        this.workItems[issueName] = duration;
+        this.syncData();
+    }
+    this.updateList();
 }
 
 Youtrack.prototype.getWorkItemsCount = function() {
@@ -221,6 +250,10 @@ Youtrack.prototype.setCurrentIssueName = function() {
         if (matches.length > 0) {
             this.issueName = matches[0];
             document.querySelector(".issue-add span").innerText = matches[0];
+            var currentItem = document.getElementById("work-item-" + this.issueName);
+            if (currentItem) {
+                currentItem.className = currentItem.className + " active";
+            }
         }
     }.bind(this));
 }

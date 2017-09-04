@@ -4,7 +4,7 @@ chrome.runtime.onInstalled.addListener(function() {
             conditions: [
                 new chrome.declarativeContent.PageStateMatcher({
                     pageUrl: {
-                        urlContains: "hungl.myjetbrains.com/youtrack/issue/"
+                        urlContains: "https://support.webcenter.pro/youtrack/issue/"
                     }
                 })
             ],
