@@ -1,16 +1,18 @@
 var Youtrack = function() {
-    this.hostName = "https://hungl.myjetbrains.com/youtrack";
+    this.ui = new UIManager(document.querySelector(".main"));
+    this.hostName = "https://support.webcenter.pro/youtrack";
     this.formAdd = document.querySelector(".issue-add");
     this.inputAdd = document.querySelector(".issue-add input");
     this.formAdd.addEventListener("submit", this.addTime.bind(this));
     this.btnSetTime = document.querySelector(".set-tracker button");
     this.btnSetTime.addEventListener("click", this.setTime.bind(this));
     this.list = document.querySelector(".issues-list");
-    document.querySelector("h1").innerText = "Время за " + this.getDateStr();
+    document.querySelector(".header.list").innerText = "Время за " + this.getDateStr();
     chrome.storage.local.get(this.getMidnightTimestamp(), this.setWorkItems.bind(this));
     this.setCurrentIssueName();
     this.inputAdd.focus();
     document.addEventListener("listUpdated", this.onListUpdated.bind(this));
+    this.getUser();
 };
 
 Youtrack.prototype.onListUpdated = function(event) {
@@ -186,7 +188,7 @@ Youtrack.prototype.decodeTime = function(str) {
 Youtrack.prototype.encodeTotalTime = function(duration) {
     var hoursCount = Math.floor(duration / 60);
     var minutesCount = duration % 60;
-    if (hoursCount == 0 && minutesCount == 0) {
+    if (hoursCount < 0 && minutesCount < 0) {
         return "0 минут";
     }
     return (!!hoursCount ? (hoursCount + " час" + this.getWordEnding(hoursCount, ["", "ов", "а"]) + " ") : "")
@@ -252,7 +254,7 @@ Youtrack.prototype.setCurrentIssueName = function() {
         var matches = currentTabUrl.match(/[a-zA-Z]+[-]\d+/);
         if (matches.length > 0) {
             this.issueName = matches[0];
-            document.querySelector(".issue-add span").innerText = matches[0];
+            document.querySelector(".header.add").innerText = "Добавить время в задачу " + matches[0];
             var currentItem = document.getElementById("work-item-" + this.issueName);
             if (currentItem) {
                 currentItem.className = currentItem.className + " active";
