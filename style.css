@@ -8,15 +8,15 @@ body {
 
 .block {
     border: 1px solid lightgray;
-    padding: 15px 5px 5px 5px;
+    padding: 5px 5px 5px 5px;
     position: relative;
-    margin: 10px 0;
+    margin: 20px 0;
 }
 
 .header {
     position: relative;
     left: 50%;
-    top: -24px;
+    top: -15px;
     transform: translate(-50%);
     background-color: #fff;
     padding: 0 5px;
@@ -43,7 +43,8 @@ h1 {
 
 .issues-list {
     list-style-type: none;
-    padding: 10px;
+    padding: 0 10px;
+    margin: 0 0 10px 0;
 }
 
 .issue {

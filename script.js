@@ -1,4 +1,4 @@
-var y = new Youtrack();
+var y = new Youtrack("https://hungl.myjetbrains.com/youtrack");
 
 // chrome.tabs.query({
 //     active: true,

@@ -4,9 +4,11 @@ var UIManager = function(element) {
     this.issuesBlock = null;
     this.actionBlock = null;
     this.summaryBlock = null;
+    this.issueName = null;
+    this.events = {};
 }
 
-UIManager.prototype.showNotAurhorized = function() {
+UIManager.prototype.showNotAuthorized = function() {
 	this.clearContainer(false);
 	if (!this.authBlock) {
 		this.createAuthBlock();
@@ -14,11 +16,14 @@ UIManager.prototype.showNotAurhorized = function() {
 	this.container.appendChild(this.authBlock);
 }
 
-UIManager.prototype.initUi = function(userName) {
+UIManager.prototype.initUi = function(userName, issueName) {
 	this.clearContainer(false);
 	this.setUserName(userName);
 	this.addIssuesBlock();
-	this.addActionBlock();
+	if (issueName) {
+		this.addActionBlock();
+		this.setIssueName(issueName);
+	}
 	this.addSummaryBlock();
 }
 
@@ -40,6 +45,7 @@ UIManager.prototype.addIssuesBlock = function() {
 	this.issuesList = document.createElement("il");
 	this.issuesList.className = "issues-list";
 	this.issuesBlock.appendChild(this.issuesList);
+	this.container.appendChild(this.issuesBlock);
 }
 
 UIManager.prototype.addActionBlock = function() {
@@ -57,7 +63,7 @@ UIManager.prototype.addActionBlock = function() {
 	inputSubmit.type = "submit";
 	inputSubmit.value = "Добавить";
 	form.appendChild(inputSubmit);
-	form.addEventListener("submit", this.fireEvent.bind(this, "ADD"));
+	form.addEventListener("submit", this.fireEvent.bind(this, "ADD", inputText.value));
 	this.actionBlock.appendChild(form);
 	this.container.appendChild(this.actionBlock);
 }
@@ -66,13 +72,13 @@ UIManager.prototype.addSummaryBlock = function() {
 	this.summaryBlock = document.createElement("div");
 	this.summaryBlock.className = "block";
 	var divSummary = document.createElement("div");
-	divTotal.className = "summary";
+	divSummary.className = "summary";
 	var divTotal = document.createElement("div");
 	divTotal.innerText = "Суммарное время за сегодня: ";
 	this.totalTime = document.createElement("b");
 	divTotal.appendChild(this.totalTime);
 	var divRemain = document.createElement("div");
-	this.divRemain.innerText = "Осталось поставить: ";
+	divRemain.innerText = "Осталось поставить: ";
 	this.remainTime = document.createElement("b");
 	divRemain.appendChild(this.remainTime);
 	divSummary.appendChild(divTotal);
@@ -81,9 +87,11 @@ UIManager.prototype.addSummaryBlock = function() {
 	var divSet = document.createElement("div");
 	divSet.className = "set-tracker";
 	var buttonSet = document.createElement("button");
+	buttonSet.innerText = "Поставить время в трекер";
 	buttonSet.addEventListener("click", this.fireEvent.bind(this, "SET"));
 	divSet.appendChild(buttonSet);
 	this.summaryBlock.appendChild(divSet);
+	this.container.appendChild(this.summaryBlock);
 }
 
 UIManager.prototype.createIssuesListBlock = function() {
@@ -109,10 +117,106 @@ UIManager.prototype.setUserName = function(userName) {
 	divUserName.innerText = userName;
 }
 
+UIManager.prototype.setIssueName = function(issueName) {
+	this.issueName = issueName;
+	this.actionBlock.querySelector(".header").innerText = "Поставить время в задачу " + issueName;
+}
+
 UIManager.prototype.getDateStr = function() {
     var date = new Date();
     var day = String(date.getDate()).padStart(2, "0");
     var month = String(date.getMonth() + 1).padStart(2, "0");
     var year = date.getFullYear();
     return day + "." + month + "." + year;
+}
+
+UIManager.prototype.fireEvent = function(eventName) {
+	switch (eventName) {
+		case "ADD":
+			var event = arguments[arguments.length - 1];
+			event.preventDefault();
+			var strTime = this.actionBlock.querySelector("input[type=text]").value;
+			var args = [strTime];
+			break;
+		case "EDIT":
+			var issueName = arguments[1];
+			var strTime = this.issuesList.querySelector("#work-item-" + issueName + " input").value;
+			var args = [issueName, strTime];
+			break;
+		case "REMOVE":
+			var issueName = arguments[1];
+			var args = [issueName];
+			break;
+		case "SET":
+			var args = [];
+			break;
+	}
+	if (this.events[eventName]) {
+		this.events[eventName].apply(null, args);
+	}
+}
+
+UIManager.prototype.setIssues = function(issues) {
+	if (Object.keys(issues).length == 0) {
+		this.showNoIssues();
+	} else {
+		this.issuesList.innerHTML = "";
+		var index = 0;
+		for (var issueName in issues) {
+			this.addIssue(issueName, issues[issueName], index++);
+		}
+	}
+}
+
+UIManager.prototype.addIssue = function(issueName, strTime, issueIndex) {
+	var liNode = document.createElement("li");
+    liNode.className = "issue" + (issueIndex % 2 == 0 ? " bg" : "") + (this.issueName == issueName ? " active" : "");
+    liNode.id = "work-item-" + issueName;
+    var nameNode = document.createElement("div");
+    nameNode.className = "issue-name";
+    nameNode.innerText = issueName;
+    liNode.appendChild(nameNode);
+    var timeNode = document.createElement("div");
+    timeNode.className = "issue-time";
+    var input = document.createElement("input");
+    input.type = "text";
+    input.value = strTime;
+    input.addEventListener("focus", function() {
+        this.select();
+    });
+    input.addEventListener("keydown", function(issueName, event) {
+        switch (event.keyCode) {
+            case 13:
+                event.target.blur();
+                break;
+            case 27:
+                event.preventDefault();
+                event.target.value = "";
+                event.target.blur();
+                break;
+        }
+    }.bind(this, issueName));
+    input.addEventListener("blur", this.fireEvent.bind(this, "EDIT", issueName));
+    timeNode.appendChild(input);
+    liNode.appendChild(timeNode);
+    var removeNode = document.createElement("div");
+    removeNode.className = "issue-remove";
+    var btnRemove = document.createElement("button");
+    btnRemove.dataset.workItemId = issueName;
+    btnRemove.addEventListener("click", this.fireEvent.bind(this, "REMOVE", issueName));
+    removeNode.appendChild(btnRemove);
+    liNode.appendChild(removeNode);
+    this.issuesList.appendChild(liNode);
+}
+
+UIManager.prototype.showNoIssues = function() {
+	this.issuesList.innerHTML = "";
+	var liNode = document.createElement("li");
+    liNode.className = "no-items";
+    liNode.innerText = "Нет единиц работы за сегодня";
+    this.issuesList.appendChild(liNode);
+}
+
+UIManager.prototype.setEvents = function(events) {
+	this.events = events;
 }

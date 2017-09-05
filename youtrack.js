@@ -1,19 +1,58 @@
-var Youtrack = function() {
+var Youtrack = function(hostName) {
     this.ui = new UIManager(document.querySelector(".main"));
-    this.hostName = "https://support.webcenter.pro/youtrack";
-    this.formAdd = document.querySelector(".issue-add");
-    this.inputAdd = document.querySelector(".issue-add input");
-    this.formAdd.addEventListener("submit", this.addTime.bind(this));
-    this.btnSetTime = document.querySelector(".set-tracker button");
-    this.btnSetTime.addEventListener("click", this.setTime.bind(this));
-    this.list = document.querySelector(".issues-list");
-    document.querySelector(".header.list").innerText = "Время за " + this.getDateStr();
-    chrome.storage.local.get(this.getMidnightTimestamp(), this.setWorkItems.bind(this));
-    this.setCurrentIssueName();
-    this.inputAdd.focus();
-    document.addEventListener("listUpdated", this.onListUpdated.bind(this));
-    this.getUser();
+    this.hostName = hostName;
+    this.getUser(function(userName) {
+        if (userName) {
+            this.getCurrentIssueName(function(issueName) {
+                console.log(userName, issueName);
+                if (issueName) {
+                    this.ui.initUi(userName, issueName);
+                    this.setUiEvents();
+                    chrome.storage.local.get(this.getMidnightTimestamp(), function(issues) {
+                        this.ui.setIssues(issues[this.getMidnightTimestamp()]);
+                    }.bind(this));
+                } else {
+                    this.ui.initUi(userName);
+                }
+            }.bind(this));
+        } else {
+            this.ui.showNotAuthorized();
+        }
+    }.bind(this));
 };
+
+Youtrack.prototype.setUiEvents = function() {
+    this.ui.setEvents({
+        ADD: this.addTime.bind(this),
+        EDIT: this.editTime.bind(this),
+        REMOVE: this.removeTime.bind(this),
+        SET: this.setTime.bind(this)
+    })
+}
+
+Youtrack.prototype.addTime = function(strTime) {
+    console.log("addTime", strTime);
+    var addDuration = this.decodeTime(strTime);
+    if (addDuration === false) {
+        return;
+    }
+    var currentDuration = this.workItems[this.issueName] || 0;
+    currentDuration += addDuration;
+    this.workItems[this.issueName] = currentDuration;
+    this.ui.setIssues(this.workItems);
+}
+
+Youtrack.prototype.editTime = function(issueName, strTime) {
+    console.log("editTime", issueName, strTime);
+}
+
+Youtrack.prototype.removeTime = function(issueName) {
+    console.log("removeTime", issueName);
+}
+
+Youtrack.prototype.setTime = function() {
+    console.log("setTime");
+}
 
 Youtrack.prototype.onListUpdated = function(event) {
     this.updateList();
@@ -37,13 +76,8 @@ Youtrack.prototype.getUser = function(callback)
     .then(str => (new window.DOMParser().parseFromString(str, "text/xml")))
     .then(function(xml) {
         var fullName = xml.getElementsByTagName("user")[0].getAttribute("fullName");
-        document.querySelector(".user-name").innerText = fullName;
+        callback(fullName);
     });
-}
-
-Youtrack.prototype.setTime = function() {
-    var itemsKeys = Object.keys(this.workItems);
-    this.sendTime(itemsKeys[0], this.workItems[itemsKeys[0]], this.onTimeSent.bind(this, 0));
 }
 
 Youtrack.prototype.sendTime = function(issueName, duration, callback) {
@@ -75,7 +109,7 @@ Youtrack.prototype.onTimeSent = function(itemIndex, issueName, duration) {
     }
 }
 
-Youtrack.prototype.addTime = function(event) {
+/*Youtrack.prototype.addTime = function(event) {
     event.preventDefault();
     console.log(this.decodeTime(this.inputAdd.value));
     var addDuration = this.decodeTime(this.inputAdd.value);
@@ -87,55 +121,7 @@ Youtrack.prototype.addTime = function(event) {
     this.workItems[this.issueName] = currentDuration;
     this.inputAdd.value = "";
     document.dispatchEvent(new Event("listUpdated"));
-}
-
-Youtrack.prototype.addNoItemsNode = function() {
-    var liNode = document.createElement("li");
-    liNode.className = "no-items";
-    liNode.innerText = "Нет единиц работы за сегодня";
-    this.list.appendChild(liNode);
-}
-
-Youtrack.prototype.addWorkItemNode = function(issueName, duration) {
-    var liNode = document.createElement("li");
-    liNode.className = "issue" + (this.getWorkItemsCount() % 2 == 0 ? " bg" : "") + (this.issueName == issueName ? " active" : "");
-    liNode.id = "work-item-" + issueName;
-    var nameNode = document.createElement("div");
-    nameNode.className = "issue-name";
-    nameNode.innerText = issueName;
-    liNode.appendChild(nameNode);
-    var timeNode = document.createElement("div");
-    timeNode.className = "issue-time";
-    var input = document.createElement("input");
-    input.type = "text";
-    input.value = this.encodeTime(duration);
-    input.addEventListener("focus", function() {
-        this.select();
-    });
-    input.addEventListener("keydown", function(issueName, event) {
-        switch (event.keyCode) {
-            case 13:
-                event.target.blur();
-                break;
-            case 27:
-                event.preventDefault();
-                event.target.value = this.workItems[issueName];
-                event.target.blur();
-                break;
-        }
-    }.bind(this, issueName));
-    input.addEventListener("blur", this.setDuration.bind(this, issueName));
-    timeNode.appendChild(input);
-    liNode.appendChild(timeNode);
-    var removeNode = document.createElement("div");
-    removeNode.className = "issue-remove";
-    var btnRemove = document.createElement("button");
-    btnRemove.dataset.workItemId = issueName;
-    btnRemove.addEventListener("click", this.removeWorkItem.bind(this));
-    removeNode.appendChild(btnRemove);
-    liNode.appendChild(removeNode);
-    this.list.appendChild(liNode);
-}
+}*/
 
 Youtrack.prototype.setDuration = function(issueName) {
     console.log("setDuration", issueName);
@@ -226,41 +212,20 @@ Youtrack.prototype.getTotalDuration = function() {
     }, 0);
 }
 
-Youtrack.prototype.updateList = function() {
-    document.querySelectorAll(".issues-list li").forEach(function(node) {
-        this.list.removeChild(node);
-    }.bind(this));
-    if (Object.keys(this.workItems).length == 0) {
-        this.addNoItemsNode();
-    } else {
-        for (var issueName in this.workItems) {
-            this.addWorkItemNode(issueName, this.workItems[issueName]);
-        }
-    }
-    
-    // this.workItems.forEach(function(workItem) {
-    //     this.addWorkItemNode(workItem);
-    // }.bind(this));
-    document.getElementById("total-time").innerText = this.encodeTotalTime(this.getTotalDuration());
-    document.getElementById("remain-time").innerText = this.encodeTotalTime(480 - this.getTotalDuration());
-}
-
-Youtrack.prototype.setCurrentIssueName = function() {
+Youtrack.prototype.getCurrentIssueName = function(callback) {
     chrome.tabs.query({
         active: true,
         currentWindow: true
     }, function(tabs) {
+        console.log(tabs);
         var currentTabUrl = tabs[0].url;
         var matches = currentTabUrl.match(/[a-zA-Z]+[-]\d+/);
-        if (matches.length > 0) {
-            this.issueName = matches[0];
-            document.querySelector(".header.add").innerText = "Добавить время в задачу " + matches[0];
-            var currentItem = document.getElementById("work-item-" + this.issueName);
-            if (currentItem) {
-                currentItem.className = currentItem.className + " active";
-            }
+        if (matches) {
+            callback(matches[0]);
+        } else {
+            callback(false);
         }
-    }.bind(this));
+    });
 }
 
 Youtrack.prototype.getMidnightTimestamp = function() {
