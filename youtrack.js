@@ -1,5 +1,5 @@
 var Youtrack = function() {
-    this.hostName = "https://support.webcenter.pro/youtrack";
+    this.hostName = "https://hungl.myjetbrains.com/youtrack";
     this.formAdd = document.querySelector(".issue-add");
     this.inputAdd = document.querySelector(".issue-add input");
     this.formAdd.addEventListener("submit", this.addTime.bind(this));
@@ -10,10 +10,15 @@ var Youtrack = function() {
     chrome.storage.local.get(this.getMidnightTimestamp(), this.setWorkItems.bind(this));
     this.setCurrentIssueName();
     this.inputAdd.focus();
+    document.addEventListener("listUpdated", this.onListUpdated.bind(this));
 };
 
+Youtrack.prototype.onListUpdated = function(event) {
+    this.updateList();
+    this.syncData();
+}
+
 Youtrack.prototype.setWorkItems = function(items) {
-    console.log(items);
     this.workItems = items[this.getMidnightTimestamp()] || {};
     this.updateList();
 }
@@ -29,7 +34,8 @@ Youtrack.prototype.getUser = function(callback)
     .then(r => r.text())
     .then(str => (new window.DOMParser().parseFromString(str, "text/xml")))
     .then(function(xml) {
-        console.log(xml);
+        var fullName = xml.getElementsByTagName("user")[0].getAttribute("fullName");
+        document.querySelector(".user-name").innerText = fullName;
     });
 }
 
@@ -78,8 +84,7 @@ Youtrack.prototype.addTime = function(event) {
     currentDuration += addDuration;
     this.workItems[this.issueName] = currentDuration;
     this.inputAdd.value = "";
-    this.updateList();
-    this.syncData();
+    document.dispatchEvent(new Event("listUpdated"));
 }
 
 Youtrack.prototype.addNoItemsNode = function() {
@@ -135,9 +140,8 @@ Youtrack.prototype.setDuration = function(issueName) {
     var duration = this.decodeTime(document.querySelector("#work-item-" + issueName + " input[type=text]").value);
     if (duration !== false) {
         this.workItems[issueName] = duration;
-        this.syncData();
     }
-    this.updateList();
+    document.dispatchEvent(new Event("listUpdated"));
 }
 
 Youtrack.prototype.getWorkItemsCount = function() {
@@ -203,8 +207,7 @@ Youtrack.prototype.removeWorkItem = function(event) {
     var issueName = event.target.dataset.workItemId;
     console.log(issueName, this.workItems);
     delete this.workItems[issueName];
-    this.updateList();
-    this.syncData();
+    document.dispatchEvent(new Event("listUpdated"));
 }
 
 Youtrack.prototype.getDateStr = function() {
