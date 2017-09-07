@@ -64,7 +64,6 @@ h1 {
 }
 
 .issue.active {
-    outline: 1px solid black;
     font-weight: bold;
     background-color: #FFEE58;
 }

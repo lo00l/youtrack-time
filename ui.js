@@ -157,20 +157,19 @@ UIManager.prototype.fireEvent = function(eventName) {
 }
 
 UIManager.prototype.setIssues = function(issues) {
-	if (Object.keys(issues).length == 0) {
+	if (issues.length == 0) {
 		this.showNoIssues();
 	} else {
 		this.issuesList.innerHTML = "";
-		var index = 0;
-		for (var issueName in issues) {
-			this.addIssue(issueName, issues[issueName], index++);
-		}
+		issues.forEach(function(issue, index) {
+			this.addIssue(issue.name, issue.time, issue.set, index);
+		}.bind(this));
 	}
 }
 
-UIManager.prototype.addIssue = function(issueName, strTime, issueIndex) {
+UIManager.prototype.addIssue = function(issueName, strTime, set, issueIndex) {
 	var liNode = document.createElement("li");
-    liNode.className = "issue" + (issueIndex % 2 == 0 ? " bg" : "") + (this.issueName == issueName ? " active" : "");
+    liNode.className = "issue" + (issueIndex % 2 == 1 ? " bg" : "") + (this.issueName == issueName ? " active" : "") + (set ? " set" : "");
     liNode.id = "work-item-" + issueName;
     var nameNode = document.createElement("div");
     nameNode.className = "issue-name";
@@ -219,4 +218,18 @@ UIManager.prototype.showNoIssues = function() {
 
 UIManager.prototype.setEvents = function(events) {
 	this.events = events;
+}
+
+UIManager.prototype.clearAddInput = function() {
+	this.actionBlock.querySelector("input[type=text]").value = "";
+	this.actionBlock.querySelector("input[type=text]").blur();
+}
+
+UIManager.prototype.focusAddInput = function() {
+	this.actionBlock.querySelector("input[type=text]").focus();
+}
+
+UIManager.prototype.setSummary = function(totalTime, remainTime) {
+	this.totalTime.innerText = totalTime;
+	this.remainTime.innerText = remainTime;
 }

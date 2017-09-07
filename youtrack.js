@@ -6,14 +6,14 @@ var Youtrack = function(hostName) {
             this.getCurrentIssueName(function(issueName) {
                 console.log(userName, issueName);
                 if (issueName) {
+                    this.issueName = issueName;
                     this.ui.initUi(userName, issueName);
-                    this.setUiEvents();
-                    chrome.storage.local.get(this.getMidnightTimestamp(), function(issues) {
-                        this.ui.setIssues(issues[this.getMidnightTimestamp()]);
-                    }.bind(this));
+                    this.ui.focusAddInput();
                 } else {
                     this.ui.initUi(userName);
                 }
+                this.setUiEvents();
+                this.getWorkItems(this.updateIssuesUi.bind(this));
             }.bind(this));
         } else {
             this.ui.showNotAuthorized();
@@ -31,27 +31,100 @@ Youtrack.prototype.setUiEvents = function() {
 }
 
 Youtrack.prototype.addTime = function(strTime) {
-    console.log("addTime", strTime);
+    console.log("addTime", strTime, this);
     var addDuration = this.decodeTime(strTime);
     if (addDuration === false) {
         return;
     }
-    var currentDuration = this.workItems[this.issueName] || 0;
+    var currentDuration = this.getIssueTime(this.issueName) || 0;
     currentDuration += addDuration;
-    this.workItems[this.issueName] = currentDuration;
-    this.ui.setIssues(this.workItems);
+    this.setIssueTime(this.issueName, currentDuration);
+    this.updateIssuesUi();
+    this.ui.clearAddInput();
+    this.syncData();
 }
 
 Youtrack.prototype.editTime = function(issueName, strTime) {
     console.log("editTime", issueName, strTime);
+    var decodedTime = this.decodeTime(strTime);
+    if (decodedTime) {
+        this.setIssueTime(issueName, decodedTime);
+        this.syncData();
+    }
+    this.updateIssuesUi();
 }
 
 Youtrack.prototype.removeTime = function(issueName) {
     console.log("removeTime", issueName);
+    for (var i = 0; i < this.workItems.length; i++) {
+        if (this.workItems[i].name == issueName) {
+            this.workItems.splice(i, 1);
+            break;
+        }
+    }
+    this.updateIssuesUi();
+    this.syncData();
+}
+
+Youtrack.prototype.updateIssuesUi = function() {
+    this.ui.setIssues(this.workItems.sort(function(issue1, issue2) {
+        if (issue1.name == this.issueName) {
+            return -1;
+        }
+        if (issue2.name == this.issueName) {
+            return 1;
+        }
+        return 0;
+    }.bind(this)).map(function(issue) {
+        return {
+            name: issue.name,
+            time: this.encodeTime(issue.time),
+            set: issue.set
+        };
+    }.bind(this)));
+    var totalTime = this.workItems.reduce(function(sum, issue) {
+        return sum + issue.time;
+    }, 0);
+    this.ui.setSummary(this.encodeTotalTime(totalTime), this.encodeTotalTime(480 - totalTime));
+}
+
+Youtrack.prototype.getIssueTime = function(issueName) {
+    for (var i = 0; i < this.workItems.length; i++) {
+        if (this.workItems[i].name == issueName) {
+            return this.workItems[i].time;
+        }
+    }
+    return false;
+}
+
+Youtrack.prototype.setIssueTime = function(issueName, time) {
+    for (var i = 0; i < this.workItems.length; i++) {
+        if (this.workItems[i].name == issueName) {
+            this.workItems[i].time = time;
+            return;
+        }
+    }
+    this.workItems.push({
+        name: issueName,
+        time: time,
+        set: false
+    });
+}
+
+Youtrack.prototype.setIssueSet = function(issueName) {
+    for (var i = 0; i < this.workItems.length; i++) {
+        if (this.workItems[i].name == issueName) {
+            this.workItems[i].set = true;
+            return;
+        }
+    }
 }
 
 Youtrack.prototype.setTime = function() {
     console.log("setTime");
+    if (this.workItems.length > 0) {
+        this.sendTime(0, this.onTimeSent.bind(this));
+    }
 }
 
 Youtrack.prototype.onListUpdated = function(event) {
@@ -66,6 +139,7 @@ Youtrack.prototype.setWorkItems = function(items) {
 
 Youtrack.prototype.getUser = function(callback)
 {
+    console.log("getUser");
     fetch(this.hostName + "/rest/user/current", {
         credentials: "include",
         headers: {
@@ -80,9 +154,22 @@ Youtrack.prototype.getUser = function(callback)
     });
 }
 
-Youtrack.prototype.sendTime = function(issueName, duration, callback) {
-    var url = this.hostName + "/rest/issue/" + issueName + "/timetracking/workitem";
-    var requestBody = "<workItem><duration>" + duration + "</duration></workItem>";
+Youtrack.prototype.getWorkItems = function(callback) {
+    chrome.storage.local.get(this.getMidnightTimestamp(), function(items) {
+        console.log(items);
+        this.workItems = items[this.getMidnightTimestamp()] || [];
+        callback(this.workItems);
+    }.bind(this));
+}
+
+Youtrack.prototype.sendTime = function(index, callback) {
+    console.log("sendTime", index);
+    if (this.workItems[index].set) {
+        callback(index);
+        return;
+    }
+    var url = this.hostName + "/rest/issue/" + this.workItems[index].name + "/timetracking/workitem";
+    var requestBody = "<workItem><duration>" + this.workItems[index].time + "</duration></workItem>";
     fetch(url, {
         credentials: "include",
         method: "POST",
@@ -95,18 +182,15 @@ Youtrack.prototype.sendTime = function(issueName, duration, callback) {
     .then(r => r.text())
     .then(str => (new window.DOMParser().parseFromString(str, "text/xml")))
     .then(function(xml) {
-        callback(issueName, duration);
+        callback(index);
     });
 }
 
-Youtrack.prototype.onTimeSent = function(itemIndex, issueName, duration) {
-    document.getElementById("work-item-" + issueName).style.backgroundColor = "#B39DDB";
-    var itemsKeys = Object.keys(this.workItems);
-    if (itemIndex < itemsKeys.length - 1) {
-        this.sendTime(itemsKeys[itemIndex + 1], this.workItems[itemsKeys[itemIndex + 1]], 
-            this.onTimeSent.bind(this, itemIndex + 1)
-        );
-    }
+Youtrack.prototype.onTimeSent = function(itemIndex) {
+    this.workItems[itemIndex].set = true;
+    this.updateIssuesUi();
+    this.syncData(itemIndex < this.workItems.length - 1 ? this.sendTime.bind(this, 
+        itemIndex + 1, this.onTimeSent.bind(this, itemIndex + 1)) : null);
 }
 
 /*Youtrack.prototype.addTime = function(event) {
@@ -234,10 +318,14 @@ Youtrack.prototype.getMidnightTimestamp = function() {
     return String(d.getTime());
 }
 
-Youtrack.prototype.syncData = function() {
+Youtrack.prototype.syncData = function(callback) {
     var midnightTimestamp = this.getMidnightTimestamp();
     var setObject = {};
     setObject[midnightTimestamp] = this.workItems;
     console.log(setObject);
-    chrome.storage.local.set(setObject);
+    chrome.storage.local.set(setObject, function() {
+        if (callback) {
+            callback();
+        }
+    });
 }
