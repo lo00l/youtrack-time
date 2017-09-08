@@ -37,6 +37,14 @@ body {
     font-size: 18px;
 }
 
+.block.loading {
+    height: 200px;
+    background-image: url("images/load.svg");
+    background-size: 150px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
 h1 {
     text-align: center;
 }
@@ -78,6 +86,11 @@ h1 {
 
 .issue-name {
     flex: 50%;
+    cursor: pointer;
+}
+
+.issue-name:hover {
+    color: gray;
 }
 
 .issue-time {

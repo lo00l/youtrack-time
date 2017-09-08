@@ -3,7 +3,7 @@ var Youtrack = function(hostName) {
     this.hostName = hostName;
     this.getUser(function(userName) {
         if (userName) {
-            this.getCurrentIssueName(function(issueName) {
+            this.getCurrentIssueName(function(issueName, tabId) {
                 console.log(userName, issueName);
                 if (issueName) {
                     this.issueName = issueName;
@@ -26,8 +26,9 @@ Youtrack.prototype.setUiEvents = function() {
         ADD: this.addTime.bind(this),
         EDIT: this.editTime.bind(this),
         REMOVE: this.removeTime.bind(this),
-        SET: this.setTime.bind(this)
-    })
+        SET: this.setTime.bind(this),
+        "ISSUE-CLICK": this.goToIssue.bind(this)
+    });
 }
 
 Youtrack.prototype.addTime = function(strTime) {
@@ -66,6 +67,20 @@ Youtrack.prototype.removeTime = function(issueName) {
     this.syncData();
 }
 
+Youtrack.prototype.goToIssue = function(issueName) {
+    console.log("goToIssue", issueName);
+    chrome.tabs.query({
+        active: true,
+        currentWindow: true
+    }, function(tabs) {
+        if (tabs.length > 0) {
+            chrome.tabs.executeScript(tabs[0].id, {
+                code: 'location.href = "' + this.hostName + "/issue/" + issueName + '";'
+            });
+        }
+    }.bind(this));
+}
+
 Youtrack.prototype.updateIssuesUi = function() {
     this.ui.setIssues(this.workItems.sort(function(issue1, issue2) {
         if (issue1.name == this.issueName) {
@@ -82,10 +97,14 @@ Youtrack.prototype.updateIssuesUi = function() {
             set: issue.set
         };
     }.bind(this)));
-    var totalTime = this.workItems.reduce(function(sum, issue) {
+    var totalTime = this.getTotalTime();
+    this.ui.setSummary(this.encodeTotalTime(totalTime), this.encodeTotalTime(480 - totalTime));
+}
+
+Youtrack.prototype.getTotalTime = function() {
+    return this.workItems.reduce(function(sum, issue) {
         return sum + issue.time;
     }, 0);
-    this.ui.setSummary(this.encodeTotalTime(totalTime), this.encodeTotalTime(480 - totalTime));
 }
 
 Youtrack.prototype.getIssueTime = function(issueName) {
@@ -303,7 +322,7 @@ Youtrack.prototype.getCurrentIssueName = function(callback) {
     }, function(tabs) {
         console.log(tabs);
         var currentTabUrl = tabs[0].url;
-        var matches = currentTabUrl.match(/[a-zA-Z]+[-]\d+/);
+        var matches = currentTabUrl.match(/[a-zA-Z0-9]+[-]\d+/);
         if (matches) {
             callback(matches[0]);
         } else {
@@ -322,6 +341,7 @@ Youtrack.prototype.syncData = function(callback) {
     var midnightTimestamp = this.getMidnightTimestamp();
     var setObject = {};
     setObject[midnightTimestamp] = this.workItems;
+    setObject['total' + midnightTimestamp] = this.getTotalTime();
     console.log(setObject);
     chrome.storage.local.set(setObject, function() {
         if (callback) {

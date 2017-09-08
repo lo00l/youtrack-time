@@ -6,6 +6,9 @@ var UIManager = function(element) {
     this.summaryBlock = null;
     this.issueName = null;
     this.events = {};
+    var loadingBlock = document.createElement("div");
+    loadingBlock.className = "block loading";
+	this.container.appendChild(loadingBlock);
 }
 
 UIManager.prototype.showNotAuthorized = function() {
@@ -150,6 +153,9 @@ UIManager.prototype.fireEvent = function(eventName) {
 		case "SET":
 			var args = [];
 			break;
+		case "ISSUE-CLICK":
+			var issueName = arguments[1];
+			var args = [issueName];
 	}
 	if (this.events[eventName]) {
 		this.events[eventName].apply(null, args);
@@ -174,6 +180,7 @@ UIManager.prototype.addIssue = function(issueName, strTime, set, issueIndex) {
     var nameNode = document.createElement("div");
     nameNode.className = "issue-name";
     nameNode.innerText = issueName;
+    nameNode.addEventListener("click", this.fireEvent.bind(this, "ISSUE-CLICK", issueName));
     liNode.appendChild(nameNode);
     var timeNode = document.createElement("div");
     timeNode.className = "issue-time";
