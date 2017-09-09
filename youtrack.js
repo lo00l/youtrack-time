@@ -3,6 +3,7 @@ var Youtrack = function(hostName) {
     this.hostName = hostName;
     this.getUser(function(userName) {
         if (userName) {
+            this.userName = userName;
             this.getCurrentIssueName(function(issueName, tabId) {
                 console.log(userName, issueName);
                 if (issueName) {
@@ -14,6 +15,14 @@ var Youtrack = function(hostName) {
                 }
                 this.setUiEvents();
                 this.getWorkItems(this.updateIssuesUi.bind(this));
+            }.bind(this));
+            chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tabs) {
+                console.log(tabId, changeInfo, tabs);
+                this.getCurrentIssueName(function(issueName) {
+                    this.issueName = issueName;
+                    this.ui.initUi(this.userName, this.issueName);
+                    this.updateIssuesUi();
+                }.bind(this));
             }.bind(this));
         } else {
             this.ui.showNotAuthorized();
@@ -208,7 +217,7 @@ Youtrack.prototype.sendTime = function(index, callback) {
 Youtrack.prototype.onTimeSent = function(itemIndex) {
     this.workItems[itemIndex].set = true;
     this.updateIssuesUi();
-    this.syncData(itemIndex < this.workItems.length - 1 ? this.sendTime.bind(this, 
+    this.syncData(itemIndex < this.workItems.length ? this.sendTime.bind(this, 
         itemIndex + 1, this.onTimeSent.bind(this, itemIndex + 1)) : null);
 }
 
@@ -277,7 +286,7 @@ Youtrack.prototype.decodeTime = function(str) {
 Youtrack.prototype.encodeTotalTime = function(duration) {
     var hoursCount = Math.floor(duration / 60);
     var minutesCount = duration % 60;
-    if (hoursCount < 0 && minutesCount < 0) {
+    if (hoursCount <= 0 && minutesCount <= 0) {
         return "0 минут";
     }
     return (!!hoursCount ? (hoursCount + " час" + this.getWordEnding(hoursCount, ["", "ов", "а"]) + " ") : "")

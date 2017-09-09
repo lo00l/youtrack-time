@@ -53,6 +53,20 @@ h1 {
     list-style-type: none;
     padding: 0 10px;
     margin: 0 0 10px 0;
+    max-height: 256px;
+    overflow-y: scroll;
+}
+
+.issues-list::-webkit-scrollbar {
+    width: 5px;
+}
+ 
+.issues-list::-webkit-scrollbar-track {
+    background: #ddd;
+}
+ 
+.issues-list::-webkit-scrollbar-thumb {
+    background: #666; 
 }
 
 .issue {
@@ -74,10 +88,6 @@ h1 {
 .issue.active {
     font-weight: bold;
     background-color: #FFEE58;
-}
-
-.issue.set {
-    background-color: #B39DDB;
 }
 
 .issue span {
@@ -115,7 +125,15 @@ h1 {
     border: none;
     background: url('images/remove.png') no-repeat;
     cursor: pointer;
-    color: ;
+}
+
+.issue-set {
+    flex: 20%;
+    text-align: right;
+    background-image: url('images/mark.png');
+    background-repeat: no-repeat;
+    background-position: right center;
+    height: 24px;
 }
 
 .issue-remove button:active, .issue-remove button:focus {
@@ -131,6 +149,8 @@ h1 {
     font-size: 16px;
     padding: 5px;
     font-weight: bold;
+    outline: none;
+    margin-right: 10px;
 }
 
 .issue-add input[type=submit] {

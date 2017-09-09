@@ -45,7 +45,7 @@ UIManager.prototype.addIssuesBlock = function() {
 	divHeader.className = "header";
 	divHeader.innerText = "Время за " + this.getDateStr();
 	this.issuesBlock.appendChild(divHeader);
-	this.issuesList = document.createElement("il");
+	this.issuesList = document.createElement("ul");
 	this.issuesList.className = "issues-list";
 	this.issuesBlock.appendChild(this.issuesList);
 	this.container.appendChild(this.issuesBlock);
@@ -163,6 +163,7 @@ UIManager.prototype.fireEvent = function(eventName) {
 }
 
 UIManager.prototype.setIssues = function(issues) {
+	console.log("setIssues", issues);
 	if (issues.length == 0) {
 		this.showNoIssues();
 	} else {
@@ -205,13 +206,19 @@ UIManager.prototype.addIssue = function(issueName, strTime, set, issueIndex) {
     input.addEventListener("blur", this.fireEvent.bind(this, "EDIT", issueName));
     timeNode.appendChild(input);
     liNode.appendChild(timeNode);
-    var removeNode = document.createElement("div");
-    removeNode.className = "issue-remove";
-    var btnRemove = document.createElement("button");
-    btnRemove.dataset.workItemId = issueName;
-    btnRemove.addEventListener("click", this.fireEvent.bind(this, "REMOVE", issueName));
-    removeNode.appendChild(btnRemove);
-    liNode.appendChild(removeNode);
+    if (set) {
+    	var setNode = document.createElement("div");
+    	setNode.className = "issue-set";
+    	liNode.appendChild(setNode)
+    } else {
+	    var removeNode = document.createElement("div");
+	    removeNode.className = "issue-remove";
+	    var btnRemove = document.createElement("button");
+	    btnRemove.dataset.workItemId = issueName;
+	    btnRemove.addEventListener("click", this.fireEvent.bind(this, "REMOVE", issueName));
+	    removeNode.appendChild(btnRemove);
+	    liNode.appendChild(removeNode);
+    }
     this.issuesList.appendChild(liNode);
 }
 
