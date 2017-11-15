@@ -1,3 +1,5 @@
+var VERSION = "v1.1.2 (15.11.2017)";
+
 var Youtrack = function(hostName) {
     this.ui = new UIManager(document.querySelector(".main"));
     this.hostName = hostName;
@@ -13,6 +15,7 @@ var Youtrack = function(hostName) {
                 } else {
                     this.ui.initUi(userName);
                 }
+                this.ui.setVersion(VERSION);
                 this.setUiEvents();
                 this.getWorkItems(this.updateIssuesUi.bind(this));
             }.bind(this));
@@ -22,6 +25,7 @@ var Youtrack = function(hostName) {
                     this.issueName = issueName;
                     this.ui.initUi(this.userName, this.issueName);
                     this.updateIssuesUi();
+                    this.ui.setVersion(VERSION);
                 }.bind(this));
             }.bind(this));
         } else {
@@ -197,7 +201,8 @@ Youtrack.prototype.sendTime = function(index, callback) {
         return;
     }
     var url = this.hostName + "/rest/issue/" + this.workItems[index].name + "/timetracking/workitem";
-    var requestBody = "<workItem><duration>" + this.workItems[index].time + "</duration></workItem>";
+    var now = Date.now();
+    var requestBody = "<workItem><date>" + now + "</date><duration>" + this.workItems[index].time + "</duration><description></description></workItem>";
     fetch(url, {
         credentials: "include",
         method: "POST",

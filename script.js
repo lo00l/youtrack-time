@@ -1,4 +1,10 @@
-var y = new Youtrack("https://support.webcenter.pro/youtrack");
+var debug = true;
+if (debug) {
+    var y = new Youtrack("https://wctest111.myjetbrains.com/youtrack");
+} else {
+    var y = new Youtrack("https://support.webcenter.pro/youtrack");
+}
+
 
 
 // chrome.tabs.query({

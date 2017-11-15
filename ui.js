@@ -4,6 +4,7 @@ var UIManager = function(element) {
     this.issuesBlock = null;
     this.actionBlock = null;
     this.summaryBlock = null;
+    this.versionDiv = null;
     this.issueName = null;
     this.events = {};
     var loadingBlock = document.createElement("div");
@@ -28,6 +29,16 @@ UIManager.prototype.initUi = function(userName, issueName) {
 		this.setIssueName(issueName);
 	}
 	this.addSummaryBlock();
+    this.addVersionDiv();
+}
+
+UIManager.prototype.addVersionDiv = function() {
+    this.versionDiv = document.createElement("div");
+    this.container.appendChild(this.versionDiv);
+}
+
+UIManager.prototype.setVersion = function(version) {
+    this.versionDiv.innerHTML = "<small>" + version + "</small>";
 }
 
 UIManager.prototype.createAuthBlock = function() {
